@@ -22,7 +22,6 @@ authRouter.post('/api/siginup', async (req, res) => {
         });
         user = await user.save();
         res.json(user);
-        console.log(user);
     } catch (e) {
         res.status(500).json({ error: e.message })
     }
@@ -48,7 +47,6 @@ authRouter.post('/api/signin', async (req, res) => {
 
 authRouter.post('/isTokenValid', async (req, res) => {
     const token = req.header('x-auth-token');
-    console.log(token)
     if (!token) return res.json(false);
     const verified = jwt.verify(token, "secretkey");
     if (!verified) return res.json(false);

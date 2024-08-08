@@ -15,8 +15,6 @@ const admin = async (req, res, next) => {
         if (user.type == 'User' || user.type == 'Seller') {
             return res.status(401).json({ msg: "You are not an admin!" });
         }
-        req.user = verified.id;
-        req.token = token;
         next();
     } catch (e) {
         return res.status(500).json({ error: e.message });

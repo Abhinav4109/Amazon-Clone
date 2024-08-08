@@ -1,12 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:amazon_clone/constants/error_handling.dart';
 import 'package:amazon_clone/constants/global_variables.dart';
 import 'package:amazon_clone/constants/snackbar.dart';
+import 'package:amazon_clone/features/admin/screens/product_screen.dart';
 import 'package:amazon_clone/models/product.dart';
 import 'package:amazon_clone/providers/user_provider.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -16,8 +17,8 @@ class AdminServices {
     required BuildContext context,
     required String name,
     required String description,
-    required double price,
-    required double quantity,
+    required int price,
+    required int quantity,
     required String category,
     required List<File> images,
   }) async {
@@ -29,7 +30,7 @@ class AdminServices {
       for (int i = 0; i < images.length; i++) {
         CloudinaryResponse res = await cloudinary.uploadFile(
           // from list, getting the path of each element (file)
-          CloudinaryFile.fromFile(images[i].path, folder: name),
+          CloudinaryFile.fromFile(images[i].path, folder: 'product/$name'),
         );
         imageUrls.add(res.secureUrl);
         Product product = Product(
@@ -50,7 +51,7 @@ class AdminServices {
         httpErrorHandling(
             res: apiRes,
             onSucess: () {
-              Navigator.pop(context);
+              Navigator.of(context).pushNamed(ProductScreen.routeName);
               showSnackBar(
                   context: context, content: 'Product Succefully Added!');
             },
@@ -58,9 +59,73 @@ class AdminServices {
             context: context);
       }
     } catch (e) {
-      if (kDebugMode) {
-        print(e.toString());
-      }
+      // ignore: use_build_context_synchronously
+      showSnackBar(context: context, content: e.toString());
+    }
+  }
+
+  Future<List<Product>> fetchAllProducts(BuildContext context) async {
+    List<Product> productList = [];
+    try {
+      var userProvider = Provider.of<UserProvider>(context, listen: false);
+
+      http.Response res =
+          await http.get(Uri.parse('$serverUri/admin-get-products'), headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'x-auth-token': userProvider.user.token,
+      });
+      // ignore: use_build_context_synchronously
+      httpErrorHandling(
+          res: res,
+          onSucess: () {
+            for (int i = 0; i < jsonDecode(res.body).length; i++) {
+              productList.add(
+                Product.fromJson(
+                  jsonEncode(
+                    jsonDecode(res.body)[i],
+                  ),
+                ),
+              );
+            }
+          },
+          // ignore: use_build_context_synchronously
+          context: context);
+    } catch (e) {
+      // ignore: avoid_print
+      print(e.toString());
+    }
+    return productList;
+  }
+
+  deleteProduct({
+    required BuildContext context,
+    required Product product,
+    required VoidCallback onSuccess,
+  }) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    try {
+      http.Response res = await http.post(
+        Uri.parse('$serverUri/admin-delete-product'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'x-auth-token': userProvider.user.token,
+        },
+        body: jsonEncode({
+          'id': product.id,
+        }),
+      );
+
+      httpErrorHandling(
+        res: res,
+        // ignore: use_build_context_synchronously
+        context: context,
+        onSucess: () {
+          onSuccess();
+        },
+      );
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      showSnackBar(context: context, content: e.toString());
     }
   }
 }

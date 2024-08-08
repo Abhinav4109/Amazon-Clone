@@ -2,7 +2,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const authRouter = require("./routes/auth")
-const adminRouter = require("./routes/admin")
+const adminRouter = require("./routes/admin");
+const catogeryProduct = require("./routes/catogery_wise_product");
+const userRouter = require("./routes/user");
 
 // INIT
 const app = express();
@@ -11,7 +13,7 @@ const DBuri = "mongodb+srv://Abhinav:abhinavamazonclone@cluster1.2u63vh0.mongodb
 
 app.use(express.json()); // alows to parse the json and make req.bpdy defined
 // Middleware
-app.use(authRouter, adminRouter);
+app.use(authRouter, adminRouter, catogeryProduct, userRouter);
 
 
 // connecting to mongoDB

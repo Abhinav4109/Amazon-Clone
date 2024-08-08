@@ -1,29 +1,45 @@
+import 'package:amazon_clone/common/widgets/loader.dart';
 import 'package:amazon_clone/constants/global_variables.dart';
 import 'package:amazon_clone/features/home/widgets/address_bar.dart';
-import 'package:amazon_clone/features/home/widgets/carousel_images.dart';
-import 'package:amazon_clone/features/home/widgets/deal_of_day.dart';
-import 'package:amazon_clone/features/home/widgets/top_catogries.dart';
-import 'package:amazon_clone/features/search/screens/search_screen.dart';
+import 'package:amazon_clone/features/product_detail/screens/product_detail_screen.dart';
+import 'package:amazon_clone/features/search/services/search_services.dart';
+import 'package:amazon_clone/features/search/widgets/searched_product.dart';
+import 'package:amazon_clone/models/product.dart';
 import 'package:flutter/material.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-  static const routeName = '/home-screen';
+class SearchScreen extends StatefulWidget {
+  const SearchScreen({super.key, required this.searchQuery});
+  static const routeName = '/search-screen';
+  final String searchQuery;
+
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final TextEditingController _searchfieldController = TextEditingController();
+class _SearchScreenState extends State<SearchScreen> {
+  final SearchServices _searchServices = SearchServices();
+
+  List<Product>? products;
+
+  fetchSearchedProduct() async {
+    products = await _searchServices.fetchSearchedProduct(
+        context: context, searchQuery: widget.searchQuery);
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchSearchedProduct();
+  }
 
   navigateToSearchScreen(String searchQuery) {
-    Navigator.pushNamed(context, SearchScreen.routeName,
+    Navigator.popAndPushNamed(context, SearchScreen.routeName,
         arguments: searchQuery);
   }
 
   @override
   Widget build(BuildContext context) {
-    // final user = Provider.of<UserProvider>(context).user;
     return Scaffold(
       appBar: PreferredSize(
           preferredSize: const Size.fromHeight(50),
@@ -44,7 +60,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         onFieldSubmitted: (value) {
                           navigateToSearchScreen(value);
                         },
-                        controller: _searchfieldController,
                         decoration: const InputDecoration(
                           hintText: 'Search Amazon.in',
                           hintStyle: TextStyle(
@@ -87,20 +102,29 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           )),
-      body: const SingleChildScrollView(
-        child: Column(
-          children: [
-            // address box
-            AddressBar(),
-            SizedBox(height: 10),
-            TopCatogries(),
-            SizedBox(height: 10),
-            CarouselImages(),
-            SizedBox(height: 15),
-            DealOfDay()
-          ],
-        ),
-      ),
+      body: products == null
+          ? const Loader()
+          : Column(
+              children: [
+                const AddressBar(),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: products!.length,
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.popAndPushNamed(
+                              context, ProductDetailScreen.routeName,
+                              arguments: products![index]);
+                        },
+                        child: SearchedProduct(product: products![index]),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
